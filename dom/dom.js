@@ -8,6 +8,25 @@ export function createFragment(...children) {
 	return fragment
 }
 
+const elementsToCleanupMapping = new Map
+const componentStack = []
+
+export function onRemovedFromDOM(callback) {
+	if (!componentStack.length) {
+		throw new Error('No components being created to attach onRemovedFromDOM to.')
+	}
+	componentStack[componentStack.length - 1].push(callback)
+}
+
+export function createComponent(componentFn, props, ...children) {
+	const removedFromDOMListeners = []
+	componentStack.push(removedFromDOMListeners)
+	const returnValue = componentFn(props, children.slice())
+	componentStack.pop()
+
+	return returnValue
+}
+
 export function createDOM(tagName, attributes, ...children) {
 	const elem = document.createElement(tagName)
 	if (attributes) {
@@ -17,7 +36,12 @@ export function createDOM(tagName, attributes, ...children) {
 					elem.addEventListener(attribute.substring(3), value)
 				} else {
 					dom(() => {
-						elem.setAttribute(attribute, value())
+						const computed = value()
+						if (computed == null) {
+							elem.removeAttribute(attribute)
+						} else {
+							elem.setAttribute(attribute, computed)
+						}
 					})
 				}
 			} else {
@@ -33,28 +57,31 @@ export function createDOM(tagName, attributes, ...children) {
 				elem.appendChild(childNodes[0])
 				dom(() => {
 					const signalValue = child()
-					const typeOfSignalValue = typeof signalValue
-					const newChildNode = typeOfSignalValue === 'object' ? signalValue : document.createTextNode(signalValue)
 					if (childNodes.length > 1) {
 						for (const child of childNodes.slice(1)) {
 							elem.removeChild(child)
 						}
 						childNodes.length = 1
 					}
-					if (newChildNode instanceof DocumentFragment) {
+					if (signalValue instanceof DocumentFragment) {
 						const existingNode = childNodes[0]
 						childNodes.length = 0
-						if (newChildNode.childNodes.length) {
-							childNodes.push(...newChildNode.childNodes)
-							elem.replaceChild(newChildNode, existingNode)
+						if (signalValue.childNodes.length) {
+							childNodes.push(...signalValue.childNodes)
+							elem.replaceChild(signalValue, existingNode)
 						} else {
 							const placeholder = document.createComment('placeholder')
 							childNodes.push(placeholder)
 							elem.replaceChild(placeholder, existingNode)
 						}
+					} else if (signalValue instanceof Element) {
+						elem.replaceChild(signalValue, childNodes[0])
+						childNodes[0] = signalValue
+					} else if (elem.childNodes.length === 1 && elem.childNodes[0].nodeType === Node.TEXT_NODE) {
+						elem.childNodes[0].nodeValue = signalValue
 					} else {
-						elem.replaceChild(newChildNode, childNodes[0])
-						childNodes[0] = newChildNode
+						elem.replaceChild(document.createTextNode(signalValue), childNodes[0])
+						childNodes[0] = elem.childNodes[0]
 					}
 				})
 			} else {
