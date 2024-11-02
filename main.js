@@ -2,7 +2,7 @@ import {createDOM, createComponent, createFragment} from '/dom/dom.js'
 import {createSignal, reaction} from "/signals/signals.js"
 
 const [randomSignal, randomSignalSetter] = createSignal(0)
-setInterval(() => randomSignalSetter(0), 100)
+setInterval(() => randomSignalSetter(Math.random()), 100)
 const [signal1, signal1Setter] = createSignal('red')
 const [signal2, signal2Setter] = createSignal('')
 const [signal3, signal3Setter] = createSignal([])
@@ -43,10 +43,10 @@ document.body.appendChild(
 )
 
 setTimeout(() => signal2Setter('world'), 1000)
-setTimeout(() => (signal2Setter('what??'),signal3Setter(['hello', 'world'])), 2000)
+setTimeout(() => (signal2Setter('what??'), signal3Setter(['hello', 'world'])), 2000)
 setTimeout(() => signal1Setter(''), 3000)
-setTimeout(() => (signal2Setter(''),signal3Setter([])), 4000)
-setTimeout(() => (signal2Setter('hello'),signal3Setter(['last one', createDOM('div', null, 'text here')])), 5000)
+setTimeout(() => (signal2Setter(''), signal3Setter([])), 4000)
+setTimeout(() => (signal2Setter('hello'), signal3Setter(['last one', createDOM('div', null, 'text here')])), 5000)
 
 function SlowLoad({nextWait = () => 1000} = {}, children) {
 	let i = 0

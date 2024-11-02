@@ -56,11 +56,14 @@ export function createSignal(defaultValue) {
 			if (typeOfValue !== typeOfNewValue) {
 				throw new Error(`Attempted to update <${value}> which is of type "${typeOfValue}" with <${newValue}> which is of type "${typeOfNewValue}"`)
 			}
+			const changed = value !== newValue
 			value = newValue
-			for (const subscriber of subscribers) {
-				reactionContext.push(subscriber)
-				subscriber.fn()
-				reactionContext.pop()
+			if (changed) {
+				for (const subscriber of subscribers) {
+					reactionContext.push(subscriber)
+					subscriber.fn()
+					reactionContext.pop()
+				}
 			}
 		}
 	]
